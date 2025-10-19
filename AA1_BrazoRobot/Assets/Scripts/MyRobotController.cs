@@ -27,7 +27,6 @@ public class MyRobotController : MonoBehaviour
         ControlManual();
     }
 
- 
     private void ControlManual()
     {
         // Joint 0: Base (Giro en Y)
@@ -71,7 +70,7 @@ public class MyRobotController : MonoBehaviour
         }
     }
 
-   
+  
 
     public void GrabObject(GameObject objectToGrab)
     {
