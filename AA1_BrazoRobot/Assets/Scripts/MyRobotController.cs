@@ -5,16 +5,15 @@ using UnityEngine.SceneManagement;
 [RequireComponent(typeof(RobotSequenceAnimator))]
 public class MyRobotController : MonoBehaviour
 {
-    // --- VARIABLE ESTÁTICA ---
     public static bool startSequenceOnLoad = false;
 
-    // --- REFERENCIAS DE HARDWARE ---
     [Header("Articulaciones (Pivotes)")]
     [SerializeField] private Transform joint_0_Base;
     [SerializeField] private Transform joint_1_Shoulder;
     [SerializeField] private Transform joint_2_Elbow;
     [SerializeField] private Transform joint_3_Wrist;
     [SerializeField] private Transform joint_4_MiniElbow;
+    [SerializeField] private Transform joint_5_GripperRotate; // <-- AÑADIDO
 
     [Header("Punto Final (End Effector)")]
     [SerializeField] private Transform endEffectorTarget;
@@ -24,7 +23,6 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float grabRadius = 0.5f;
     [SerializeField] private LayerMask grabbableLayer;
 
-    // --- PARÁMETROS ---
     [Header("Parámetros de Movimiento")]
     [SerializeField] private float manualRotationSpeed = 50.0f;
     [SerializeField] private float animationMoveSpeed = 1.0f;
@@ -38,19 +36,20 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float wrist_MaxY = 180.0f;
     [SerializeField] private float miniElbow_MinX = -45.0f;
     [SerializeField] private float miniElbow_MaxX = 90.0f;
+    [SerializeField] private float gripper_MinY = -180.0f; // <-- AÑADIDO
+    [SerializeField] private float gripper_MaxY = 180.0f; // <-- AÑADIDO
 
-    // --- ESTADO INTERNO ---
     public bool isBusy { get; private set; } = false;
-
     private GameObject heldObject = null;
     private RobotSequenceAnimator sequenceAnimator;
 
-    // Variables de Estado para Ángulos
+    // 6 Ángulos de estado
     private float baseAngleY = 0f;
     private float shoulderAngleX = 0f;
     private float elbowAngleX = 0f;
     private float wristAngleY = 0f;
     private float miniElbowAngleX = 0f;
+    private float gripperAngleY = 0f; // <-- AÑADIDO
 
 
     void Awake()
@@ -62,22 +61,17 @@ public class MyRobotController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            Debug.Log("Bandera 'Start On Load' activada. Reiniciando escena...");
             startSequenceOnLoad = true;
             ResetScene();
             return;
         }
-
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            Debug.Log("Reiniciando escena a Modo Manual...");
             startSequenceOnLoad = false;
             ResetScene();
             return;
         }
-
         if (isBusy) return;
-
         ControlManual();
         HandleActionInput();
     }
@@ -115,6 +109,11 @@ public class MyRobotController : MonoBehaviour
         if (Input.GetKey(KeyCode.C)) wristAngleY += manualRotationSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.R)) miniElbowAngleX += manualRotationSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.F)) miniElbowAngleX -= manualRotationSpeed * Time.deltaTime;
+
+        // --- NUEVAS TECLAS ---
+        if (Input.GetKey(KeyCode.T)) gripperAngleY += manualRotationSpeed * Time.deltaTime;
+        if (Input.GetKey(KeyCode.Y)) gripperAngleY -= manualRotationSpeed * Time.deltaTime;
+
         ApplyAllRotations();
     }
 
@@ -124,11 +123,14 @@ public class MyRobotController : MonoBehaviour
         elbowAngleX = Mathf.Clamp(elbowAngleX, elbow_MinX, elbow_MaxX);
         wristAngleY = Mathf.Clamp(wristAngleY, wrist_MinY, wrist_MaxY);
         miniElbowAngleX = Mathf.Clamp(miniElbowAngleX, miniElbow_MinX, miniElbow_MaxX);
+        gripperAngleY = Mathf.Clamp(gripperAngleY, gripper_MinY, gripper_MaxY); // <-- AÑADIDO
+
         joint_0_Base.localRotation = Quaternion.Euler(0, baseAngleY, 0);
         joint_1_Shoulder.localRotation = Quaternion.Euler(shoulderAngleX, 0, 0);
         joint_2_Elbow.localRotation = Quaternion.Euler(elbowAngleX, 0, 0);
         joint_3_Wrist.localRotation = Quaternion.Euler(0, wristAngleY, 0);
         joint_4_MiniElbow.localRotation = Quaternion.Euler(miniElbowAngleX, 0, 0);
+        joint_5_GripperRotate.localRotation = Quaternion.Euler(0, gripperAngleY, 0); // <-- AÑADIDO
     }
 
     private void ResetScene()
@@ -141,26 +143,26 @@ public class MyRobotController : MonoBehaviour
 
     public IEnumerator ResetArm()
     {
-        // if (isBusy) yield break; // <-- LÍNEA CORREGIDA (eliminada)
         isBusy = true;
         Debug.Log("Reseteando brazo...");
-        yield return StartCoroutine(MoveToPose(0, 0, 0, 0, 0, 1.0f));
+        // Ahora resetea 6 ejes
+        yield return StartCoroutine(MoveToPose(0, 0, 0, 0, 0, 0, 1.0f));
         isBusy = false;
         Debug.Log("Brazo reseteado.");
     }
 
     public IEnumerator MoveToPose(float[] angles, float duration)
     {
-        yield return StartCoroutine(MoveToPose(angles[0], angles[1], angles[2], angles[3], angles[4], duration));
+        // Espera un array de 6 ángulos
+        yield return StartCoroutine(MoveToPose(angles[0], angles[1], angles[2], angles[3], angles[4], angles[5], duration));
     }
 
-    public IEnumerator MoveToPose(float b, float s, float e, float w, float m, float duration)
+    public IEnumerator MoveToPose(float b, float s, float e, float w, float m, float g, float duration)
     {
-        // if (isBusy) yield break; // <-- LÍNEA CORREGIDA (eliminada)
         isBusy = true;
 
-        float startB = baseAngleY; float startS = shoulderAngleX; float startE = elbowAngleX;
-        float startW = wristAngleY; float startM = miniElbowAngleX;
+        float startB = baseAngleY, startS = shoulderAngleX, startE = elbowAngleX;
+        float startW = wristAngleY, startM = miniElbowAngleX, startG = gripperAngleY; // <-- AÑADIDO
         float time = 0;
 
         while (time < duration)
@@ -171,11 +173,14 @@ public class MyRobotController : MonoBehaviour
             elbowAngleX = Mathf.Lerp(startE, e, t);
             wristAngleY = Mathf.Lerp(startW, w, t);
             miniElbowAngleX = Mathf.Lerp(startM, m, t);
+            gripperAngleY = Mathf.Lerp(startG, g, t); // <-- AÑADIDO
+
             ApplyAllRotations();
             time += Time.deltaTime * animationMoveSpeed;
             yield return null;
         }
-        baseAngleY = b; shoulderAngleX = s; elbowAngleX = e; wristAngleY = w; miniElbowAngleX = m;
+        baseAngleY = b; shoulderAngleX = s; elbowAngleX = e;
+        wristAngleY = w; miniElbowAngleX = m; gripperAngleY = g; // <-- AÑADIDO
         ApplyAllRotations();
         isBusy = false;
     }
@@ -213,7 +218,7 @@ public class MyRobotController : MonoBehaviour
 
     private IEnumerator DodgeAnimation()
     {
-        if (isBusy) yield break; // Esta comprobación está bien aquí, es un inicio de acción
+        if (isBusy) yield break;
         isBusy = true;
 
         float duration = 0.5f; float elapsedTime = 0f;
