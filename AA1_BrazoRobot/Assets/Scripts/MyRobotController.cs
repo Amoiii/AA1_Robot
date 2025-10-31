@@ -13,7 +13,7 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private Transform joint_2_Elbow;
     [SerializeField] private Transform joint_3_Wrist;
     [SerializeField] private Transform joint_4_MiniElbow;
-    [SerializeField] private Transform joint_5_GripperRotate; // <-- AÑADIDO
+    [SerializeField] private Transform joint_5_GripperRotate; 
 
     [Header("Punto Final (End Effector)")]
     [SerializeField] private Transform endEffectorTarget;
@@ -36,8 +36,8 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float wrist_MaxY = 180.0f;
     [SerializeField] private float miniElbow_MinX = -45.0f;
     [SerializeField] private float miniElbow_MaxX = 90.0f;
-    [SerializeField] private float gripper_MinY = -180.0f; // <-- AÑADIDO
-    [SerializeField] private float gripper_MaxY = 180.0f; // <-- AÑADIDO
+    [SerializeField] private float gripper_MinY = -180.0f; 
+    [SerializeField] private float gripper_MaxY = 180.0f;
 
     public bool isBusy { get; private set; } = false;
     private GameObject heldObject = null;
@@ -49,7 +49,7 @@ public class MyRobotController : MonoBehaviour
     private float elbowAngleX = 0f;
     private float wristAngleY = 0f;
     private float miniElbowAngleX = 0f;
-    private float gripperAngleY = 0f; // <-- AÑADIDO
+    private float gripperAngleY = 0f; 
 
 
     void Awake()
@@ -123,14 +123,14 @@ public class MyRobotController : MonoBehaviour
         elbowAngleX = Mathf.Clamp(elbowAngleX, elbow_MinX, elbow_MaxX);
         wristAngleY = Mathf.Clamp(wristAngleY, wrist_MinY, wrist_MaxY);
         miniElbowAngleX = Mathf.Clamp(miniElbowAngleX, miniElbow_MinX, miniElbow_MaxX);
-        gripperAngleY = Mathf.Clamp(gripperAngleY, gripper_MinY, gripper_MaxY); // <-- AÑADIDO
+        gripperAngleY = Mathf.Clamp(gripperAngleY, gripper_MinY, gripper_MaxY); 
 
         joint_0_Base.localRotation = Quaternion.Euler(0, baseAngleY, 0);
         joint_1_Shoulder.localRotation = Quaternion.Euler(shoulderAngleX, 0, 0);
         joint_2_Elbow.localRotation = Quaternion.Euler(elbowAngleX, 0, 0);
         joint_3_Wrist.localRotation = Quaternion.Euler(0, wristAngleY, 0);
         joint_4_MiniElbow.localRotation = Quaternion.Euler(miniElbowAngleX, 0, 0);
-        joint_5_GripperRotate.localRotation = Quaternion.Euler(0, gripperAngleY, 0); // <-- AÑADIDO
+        joint_5_GripperRotate.localRotation = Quaternion.Euler(0, gripperAngleY, 0);
     }
 
     private void ResetScene()
@@ -139,13 +139,13 @@ public class MyRobotController : MonoBehaviour
         SceneManager.LoadScene(currentSceneName);
     }
 
-    // --- MÉTODOS PÚBLICOS (Para el Animador) ---
+   
 
     public IEnumerator ResetArm()
     {
         isBusy = true;
         Debug.Log("Reseteando brazo...");
-        // Ahora resetea 6 ejes
+        
         yield return StartCoroutine(MoveToPose(0, 0, 0, 0, 0, 0, 1.0f));
         isBusy = false;
         Debug.Log("Brazo reseteado.");
@@ -162,7 +162,7 @@ public class MyRobotController : MonoBehaviour
         isBusy = true;
 
         float startB = baseAngleY, startS = shoulderAngleX, startE = elbowAngleX;
-        float startW = wristAngleY, startM = miniElbowAngleX, startG = gripperAngleY; // <-- AÑADIDO
+        float startW = wristAngleY, startM = miniElbowAngleX, startG = gripperAngleY; 
         float time = 0;
 
         while (time < duration)
@@ -173,14 +173,14 @@ public class MyRobotController : MonoBehaviour
             elbowAngleX = Mathf.Lerp(startE, e, t);
             wristAngleY = Mathf.Lerp(startW, w, t);
             miniElbowAngleX = Mathf.Lerp(startM, m, t);
-            gripperAngleY = Mathf.Lerp(startG, g, t); // <-- AÑADIDO
+            gripperAngleY = Mathf.Lerp(startG, g, t); 
 
             ApplyAllRotations();
             time += Time.deltaTime * animationMoveSpeed;
             yield return null;
         }
         baseAngleY = b; shoulderAngleX = s; elbowAngleX = e;
-        wristAngleY = w; miniElbowAngleX = m; gripperAngleY = g; // <-- AÑADIDO
+        wristAngleY = w; miniElbowAngleX = m; gripperAngleY = g;
         ApplyAllRotations();
         isBusy = false;
     }

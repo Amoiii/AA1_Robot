@@ -19,7 +19,7 @@ public class RobotSequenceAnimator : MonoBehaviour
 
     void Start()
     {
-        // Esta lógica comprueba si debe auto-iniciar la animación
+       
         if (MyRobotController.startSequenceOnLoad)
         {
             MyRobotController.startSequenceOnLoad = false;
@@ -38,17 +38,14 @@ public class RobotSequenceAnimator : MonoBehaviour
         StartCoroutine(PerformShowcaseSequence());
     }
 
-    /// <summary>
-    /// Corrutina de animación "Showcase" para demostrar todos los ejes.
-    /// </summary>
+   
     private IEnumerator PerformShowcaseSequence()
     {
         isSequenceRunning = true;
         Debug.Log("INICIANDO SECUENCIA SHOWCASE...");
 
-        // --- TODO: AJUSTA ESTAS 4 POSES CLAVE ---
-        // Sigue siendo tu tarea principal calibrar estas 4 poses.
-        // Formato: { Base, Hombro, Codo, Muñeca, MiniCodo, GiroPinza }
+        
+        // { Base, Hombro, Codo, Muñeca, MiniCodo, GiroPinza }
 
         float[] pose_HoverCube = { 45f, 30f, 60f, 0f, 45f, 0f };
         float[] pose_GrabCube = { 45f, 35f, 60f, 0f, 50f, 0f };
@@ -56,10 +53,8 @@ public class RobotSequenceAnimator : MonoBehaviour
         float[] pose_PlaceDrop = { -90f, 35f, 60f, 0f, 50f, 90f };
 
 
-        // --- CREACIÓN DE POSES INTERMEDIAS (AUTOMÁTICO) ---
-        // Usaremos estas poses para los movimientos extra
 
-        // Pose "Lift" (levantar el cubo)
+        // Pose "Lift" 
         float[] pose_Lift = {
             pose_GrabCube[0], 10f, 20f, 0f, 50f, 0f
         };
@@ -81,7 +76,7 @@ public class RobotSequenceAnimator : MonoBehaviour
         };
 
 
-        // --- INICIO DE LA SECUENCIA DE MOVIMIENTO ---
+        
 
         // 1. IR A COGER
         Debug.Log("Paso 1: Moviendo para coger...");
@@ -101,13 +96,13 @@ public class RobotSequenceAnimator : MonoBehaviour
         Debug.Log("Paso 4: Inspeccionando (Eje 4: Muñeca)...");
         yield return StartCoroutine(myRobotController.MoveToPose(pose_Inspect_WristLeft, 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPose(pose_Inspect_WristRight, 1.0f));
-        yield return StartCoroutine(myRobotController.MoveToPose(pose_Lift, 1.0f)); // Volver al centro
+        yield return StartCoroutine(myRobotController.MoveToPose(pose_Lift, 1.0f));
 
         // 5. INSPECCIONAR (EJE 6 - PINZA)
         Debug.Log("Paso 5: Inspeccionando (Eje 6: Pinza)...");
         yield return StartCoroutine(myRobotController.MoveToPose(pose_Inspect_GripLeft, 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPose(pose_Inspect_GripRight, 1.0f));
-        yield return StartCoroutine(myRobotController.MoveToPose(pose_Lift, 1.0f)); // Volver al centro
+        yield return StartCoroutine(myRobotController.MoveToPose(pose_Lift, 1.0f)); 
 
         // 6. GIRAR A ZONA DE SOLTAR
         Debug.Log("Paso 6: Girando hacia la zona de soltar...");
