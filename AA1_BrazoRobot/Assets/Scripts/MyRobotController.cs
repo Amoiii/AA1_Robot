@@ -1,15 +1,14 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.SceneManagement; 
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(RobotSequenceAnimator))]
 public class MyRobotController : MonoBehaviour
 {
-    
-    // Esta variable 'sobrevive' al reinicio de la escena.
+    // --- VARIABLE ESTÁTICA ---
     public static bool startSequenceOnLoad = false;
 
-   
+    // --- REFERENCIAS DE HARDWARE ---
     [Header("Articulaciones (Pivotes)")]
     [SerializeField] private Transform joint_0_Base;
     [SerializeField] private Transform joint_1_Shoulder;
@@ -25,7 +24,7 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float grabRadius = 0.5f;
     [SerializeField] private LayerMask grabbableLayer;
 
-    
+    // --- PARÁMETROS ---
     [Header("Parámetros de Movimiento")]
     [SerializeField] private float manualRotationSpeed = 50.0f;
     [SerializeField] private float animationMoveSpeed = 1.0f;
@@ -40,13 +39,13 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float miniElbow_MinX = -45.0f;
     [SerializeField] private float miniElbow_MaxX = 90.0f;
 
-  
+    // --- ESTADO INTERNO ---
     public bool isBusy { get; private set; } = false;
 
     private GameObject heldObject = null;
     private RobotSequenceAnimator sequenceAnimator;
 
-    
+    // Variables de Estado para Ángulos
     private float baseAngleY = 0f;
     private float shoulderAngleX = 0f;
     private float elbowAngleX = 0f;
@@ -61,28 +60,24 @@ public class MyRobotController : MonoBehaviour
 
     void Update()
     {
-        
-        // Si aprietas '2', activa la bandera estática y reinicia la escena
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             Debug.Log("Bandera 'Start On Load' activada. Reiniciando escena...");
-            startSequenceOnLoad = true; // Activa la bandera
+            startSequenceOnLoad = true;
             ResetScene();
             return;
         }
 
-        // Si aprietas '1', reinicia la escena pero SIN la bandera (modo manual)
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             Debug.Log("Reiniciando escena a Modo Manual...");
-            startSequenceOnLoad = false; // Asegúrate de que la bandera esté apagada
+            startSequenceOnLoad = false;
             ResetScene();
             return;
         }
 
         if (isBusy) return;
 
-        // Si no se está reiniciando, funciona en modo manual
         ControlManual();
         HandleActionInput();
     }
@@ -100,7 +95,6 @@ public class MyRobotController : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.P))
         {
-            // 'P' sigue funcionando para lanzar la anim manual
             sequenceAnimator.StartFullSequence();
         }
         if (Input.GetKeyDown(KeyCode.R))
@@ -143,11 +137,11 @@ public class MyRobotController : MonoBehaviour
         SceneManager.LoadScene(currentSceneName);
     }
 
-    
+    // --- MÉTODOS PÚBLICOS (Para el Animador) ---
 
     public IEnumerator ResetArm()
     {
-        if (isBusy) yield break;
+        // if (isBusy) yield break; // <-- LÍNEA CORREGIDA (eliminada)
         isBusy = true;
         Debug.Log("Reseteando brazo...");
         yield return StartCoroutine(MoveToPose(0, 0, 0, 0, 0, 1.0f));
@@ -162,14 +156,16 @@ public class MyRobotController : MonoBehaviour
 
     public IEnumerator MoveToPose(float b, float s, float e, float w, float m, float duration)
     {
-        if (isBusy) yield break;
+        // if (isBusy) yield break; // <-- LÍNEA CORREGIDA (eliminada)
         isBusy = true;
+
         float startB = baseAngleY; float startS = shoulderAngleX; float startE = elbowAngleX;
         float startW = wristAngleY; float startM = miniElbowAngleX;
         float time = 0;
+
         while (time < duration)
         {
-            float t = time / duration; t = t * t * (3f - 2f * t);
+            float t = time / duration; t = t * t * (3f - 2f * t); // SmoothStep
             baseAngleY = Mathf.Lerp(startB, b, t);
             shoulderAngleX = Mathf.Lerp(startS, s, t);
             elbowAngleX = Mathf.Lerp(startE, e, t);
@@ -202,7 +198,7 @@ public class MyRobotController : MonoBehaviour
         heldObject.transform.SetParent(gripPoint);
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
-        
+        Debug.Log("Objeto agarrado: " + heldObject.name);
     }
 
     public void ReleaseObject()
@@ -217,18 +213,22 @@ public class MyRobotController : MonoBehaviour
 
     private IEnumerator DodgeAnimation()
     {
-        if (isBusy) yield break;
+        if (isBusy) yield break; // Esta comprobación está bien aquí, es un inicio de acción
         isBusy = true;
+
         float duration = 0.5f; float elapsedTime = 0f;
         Quaternion originalShoulderRot = joint_1_Shoulder.localRotation;
         Quaternion originalElbowRot = joint_2_Elbow.localRotation;
         Quaternion targetShoulderRot = originalShoulderRot * Quaternion.Euler(45f, 0, 0);
         Quaternion targetElbowRot = originalElbowRot * Quaternion.Euler(-30f, 0, 0);
+
         while (elapsedTime < duration) { float t = elapsedTime / duration; joint_1_Shoulder.localRotation = Quaternion.Slerp(originalShoulderRot, targetShoulderRot, t); joint_2_Elbow.localRotation = Quaternion.Slerp(originalElbowRot, targetElbowRot, t); elapsedTime += Time.deltaTime; yield return null; }
         joint_1_Shoulder.localRotation = targetShoulderRot; joint_2_Elbow.localRotation = targetElbowRot; elapsedTime = 0f;
         while (elapsedTime < duration) { float t = elapsedTime / duration; joint_1_Shoulder.localRotation = Quaternion.Slerp(targetShoulderRot, originalShoulderRot, t); joint_2_Elbow.localRotation = Quaternion.Slerp(targetElbowRot, originalElbowRot, t); elapsedTime += Time.deltaTime; yield return null; }
+
         joint_1_Shoulder.localRotation = originalShoulderRot; joint_2_Elbow.localRotation = originalElbowRot;
         shoulderAngleX = NormalizeAngle(originalShoulderRot.eulerAngles.x); elbowAngleX = NormalizeAngle(originalElbowRot.eulerAngles.x);
+
         isBusy = false;
     }
 
