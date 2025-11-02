@@ -89,10 +89,6 @@ public class MyRobotController : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.P))
         {
-            sequenceAnimator.StartFullSequence();
-        }
-        if (Input.GetKeyDown(KeyCode.R))
-        {
             StartCoroutine(ResetArm());
         }
     }
