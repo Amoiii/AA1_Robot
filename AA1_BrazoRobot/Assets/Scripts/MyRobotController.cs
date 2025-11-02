@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
 
@@ -7,7 +7,7 @@ public class MyRobotController : MonoBehaviour
 {
     public static bool startSequenceOnLoad = false;
 
-    [Header("Articulaciones (Pivotes)")]
+    
     [SerializeField] private Transform joint_0_Base;
     [SerializeField] private Transform joint_1_Shoulder;
     [SerializeField] private Transform joint_2_Elbow;
@@ -15,19 +15,19 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private Transform joint_4_MiniElbow;
     [SerializeField] private Transform joint_5_GripperRotate;
 
-    [Header("Punto Final (End Effector)")]
+    
     [SerializeField] private Transform endEffectorTarget;
 
-    [Header("Sistema de Agarre")]
+    
     [SerializeField] private Transform gripPoint;
     [SerializeField] private float grabRadius = 0.5f;
     [SerializeField] private LayerMask grabbableLayer;
 
-    [Header("Parámetros de Movimiento")]
+    // Velocidades
     [SerializeField] private float manualRotationSpeed = 50.0f;
     [SerializeField] private float animationMoveSpeed = 1.0f;
 
-    [Header("Límites de Articulaciones (Grados)")]
+    // LÃ­mites por eje
     [SerializeField] private float base_MinY = -180f;
     [SerializeField] private float base_MaxY = 180f;
     [SerializeField] private float shoulder_MinX = -90.0f;
@@ -41,19 +41,19 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float gripper_MinY = -180.0f;
     [SerializeField] private float gripper_MaxY = 180.0f;
 
-    [Header("Evitación por software")]
-    [SerializeField] private LayerMask obstacleLayer;       
-    [SerializeField] private float linkRadius = 0.08f;      
+    // EvitaciÃ³n por software 
+    [SerializeField] private LayerMask obstacleLayer;      
+    [SerializeField] private float linkRadius = 0.08f;     
     [SerializeField] private float effectorProbeRadius = 0.12f;
-    [SerializeField] private float safeHeight = 1.2f;       
-    [SerializeField] private int probeSteps = 10;         
+    [SerializeField] private float safeHeight = 1.2f;      
+    [SerializeField] private int probeSteps = 10;        
     [SerializeField] private bool blockManualOnCollision = true;
 
     public bool isBusy { get; private set; } = false;
     private GameObject heldObject = null;
     private RobotSequenceAnimator sequenceAnimator;
 
-    // 6 Ángulos de estado
+    // Estado angular (FK)
     private float baseAngleY = 0f;
     private float shoulderAngleX = 0f;
     private float elbowAngleX = 0f;
@@ -61,36 +61,28 @@ public class MyRobotController : MonoBehaviour
     private float miniElbowAngleX = 0f;
     private float gripperAngleY = 0f;
 
-    void Awake()
-    {
-        sequenceAnimator = GetComponent<RobotSequenceAnimator>();
-    }
+    void Awake() => sequenceAnimator = GetComponent<RobotSequenceAnimator>();
 
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Alpha2)) { startSequenceOnLoad = true; ResetScene(); return; }
         if (Input.GetKeyDown(KeyCode.Alpha1)) { startSequenceOnLoad = false; ResetScene(); return; }
-
         if (isBusy) return;
-        ControlManual();
-        HandleActionInput();
+
+        ControlManual();       // FK manual con bloqueo si hay colisiÃ³n
+        HandleActionInput();   // agarrar / reset / anim puntual
     }
 
     private void HandleActionInput()
     {
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            if (heldObject == null) TryGrabObject();
-            else ReleaseObject();
-        }
-        if (Input.GetKeyDown(KeyCode.Space)) StartCoroutine(DodgeAnimation());
+        if (Input.GetKeyDown(KeyCode.G)) { if (heldObject == null) TryGrabObject(); else ReleaseObject(); }
+        
         if (Input.GetKeyDown(KeyCode.P)) StartCoroutine(ResetArm());
     }
 
-    // ---- Control manual con bloqueo por colisión ----
+    // Lee input â†’ propone Ã¡ngulos â†’ intenta aplicarlos; si chocan, revierte
     private void ControlManual()
     {
-        // ángulos propuestos
         float b = baseAngleY, s = shoulderAngleX, e = elbowAngleX, w = wristAngleY, m = miniElbowAngleX, g = gripperAngleY;
 
         if (Input.GetKey(KeyCode.A)) b -= manualRotationSpeed * Time.deltaTime;
@@ -111,29 +103,29 @@ public class MyRobotController : MonoBehaviour
 
     private void TryApplyAnglesSafely(float b, float s, float e, float w, float m, float g)
     {
-        // estado previo
+        // Guardamos estado actual para poder revertir
         float pb = baseAngleY, ps = shoulderAngleX, pe = elbowAngleX, pw = wristAngleY, pm = miniElbowAngleX, pg = gripperAngleY;
         Vector3 effPrev = endEffectorTarget ? endEffectorTarget.position : Vector3.zero;
 
-        // aplica propuestos (clamps dentro)
+        // Aplicamos propuesta (los clamps van en ApplyAllRotations)
         baseAngleY = b; shoulderAngleX = s; elbowAngleX = e; wristAngleY = w; miniElbowAngleX = m; gripperAngleY = g;
         ApplyAllRotations();
 
         if (!blockManualOnCollision) return;
 
+        // Chequeos: cadena (cÃ¡psulas) + sweep del efector (esfera)
         bool clearChain = ChainClear();
-        bool clearSweep = true;
-        if (endEffectorTarget) clearSweep = EffectorPathClear(effPrev, endEffectorTarget.position);
+        bool clearSweep = endEffectorTarget ? EffectorPathClear(effPrev, endEffectorTarget.position) : true;
 
         if (!clearChain || !clearSweep)
         {
-            // revertir si choca
+            // Revertimos si habrÃ­a colisiÃ³n
             baseAngleY = pb; shoulderAngleX = ps; elbowAngleX = pe; wristAngleY = pw; miniElbowAngleX = pm; gripperAngleY = pg;
             ApplyAllRotations();
-            // Debug.Log("Movimiento manual bloqueado por colisión.");
         }
     }
 
+    // Aplica estado â†’ clamps â†’ rotaciones locales
     private void ApplyAllRotations()
     {
         baseAngleY = Mathf.Clamp(baseAngleY, base_MinY, base_MaxY);
@@ -164,7 +156,7 @@ public class MyRobotController : MonoBehaviour
         isBusy = false;
     }
 
-   
+    
     public IEnumerator MoveToPose(float[] angles, float duration)
     {
         yield return StartCoroutine(MoveToPose(angles[0], angles[1], angles[2], angles[3], angles[4], angles[5], duration));
@@ -182,6 +174,7 @@ public class MyRobotController : MonoBehaviour
         {
             float t = time / duration; t = t * t * (3f - 2f * t); // SmoothStep
 
+            // Y usa LerpAngle (Ã¡ngulos circulares)
             baseAngleY = Mathf.LerpAngle(startB, b, t);
             shoulderAngleX = Mathf.Lerp(startS, s, t);
             elbowAngleX = Mathf.Lerp(startE, e, t);
@@ -199,7 +192,7 @@ public class MyRobotController : MonoBehaviour
         isBusy = false;
     }
 
-    // Versión con comprobación de colisiones por pasos
+    // Evita continuar si hay coolisones
     IEnumerator MoveToPoseSafe(float b, float s, float e, float w, float m, float g, float duration)
     {
         isBusy = true;
@@ -218,17 +211,13 @@ public class MyRobotController : MonoBehaviour
 
             ApplyAllRotations();
 
-            if (!ChainClear())
-            {
-                Debug.LogWarning("Colisión detectada en cadena. Abortando tramo.");
-                isBusy = false; yield break;
-            }
+            if (!ChainClear()) { isBusy = false; yield break; }
             yield return new WaitForSeconds(duration / (steps * animationMoveSpeed));
         }
         isBusy = false;
     }
 
-   
+    
     private void TryGrabObject()
     {
         Collider[] colliders = Physics.OverlapSphere(endEffectorTarget.position, grabRadius, grabbableLayer);
@@ -253,95 +242,59 @@ public class MyRobotController : MonoBehaviour
         heldObject = null;
     }
 
-   
-    private IEnumerator DodgeAnimation()
-    {
-        if (isBusy) yield break;
-        isBusy = true;
-
-        float duration = 0.5f; float elapsedTime = 0f;
-        Quaternion originalShoulderRot = joint_1_Shoulder.localRotation;
-        Quaternion originalElbowRot = joint_2_Elbow.localRotation;
-        Quaternion targetShoulderRot = originalShoulderRot * Quaternion.Euler(45f, 0, 0);
-        Quaternion targetElbowRot = originalElbowRot * Quaternion.Euler(-30f, 0, 0);
-
-        while (elapsedTime < duration)
-        {
-            float t = elapsedTime / duration;
-            joint_1_Shoulder.localRotation = Quaternion.Slerp(originalShoulderRot, targetShoulderRot, t);
-            joint_2_Elbow.localRotation = Quaternion.Slerp(originalElbowRot, targetElbowRot, t);
-            elapsedTime += Time.deltaTime; yield return null;
-        }
-        joint_1_Shoulder.localRotation = targetShoulderRot;
-        joint_2_Elbow.localRotation = targetElbowRot;
-        elapsedTime = 0f;
-        while (elapsedTime < duration)
-        {
-            float t = elapsedTime / duration;
-            joint_1_Shoulder.localRotation = Quaternion.Slerp(targetShoulderRot, originalShoulderRot, t);
-            joint_2_Elbow.localRotation = Quaternion.Slerp(targetElbowRot, originalElbowRot, t);
-            elapsedTime += Time.deltaTime; yield return null;
-        }
-
-        joint_1_Shoulder.localRotation = originalShoulderRot;
-        joint_2_Elbow.localRotation = originalElbowRot;
-
-        shoulderAngleX = NormalizeAngle(originalShoulderRot.eulerAngles.x);
-        elbowAngleX = NormalizeAngle(originalElbowRot.eulerAngles.x);
-
-        isBusy = false;
-    }
+ 
 
     private float NormalizeAngle(float angle) { if (angle > 180) angle -= 360; return angle; }
 
     public void GrabObject(GameObject objectToGrab) { TryGrabObject(); }
 
-   
+    
     public void MoveToTarget(Vector3 targetPosition, Quaternion targetRotation)
     {
         if (isBusy) return;
         StartCoroutine(MoveToTargetRoutine(targetPosition, targetRotation));
     }
 
-    IEnumerator MoveToTargetRoutine(Vector3 targetPos, Quaternion targetRot)
+    private IEnumerator MoveToTargetRoutine(Vector3 targetPos, Quaternion targetRot)
     {
         isBusy = true;
 
-        // 1) Subir a pose "alta"
+        // 1) Subir a una pose alta 
         float[] poseUp = { baseAngleY, 10f, 20f, wristAngleY, miniElbowAngleX, gripperAngleY };
         yield return StartCoroutine(MoveToPoseSafe(poseUp[0], poseUp[1], poseUp[2], poseUp[3], poseUp[4], poseUp[5], 0.8f));
 
-        // 2) Girar base al objetivo (planta)
+        // 2) Girar solo la base hacia el objetivo (proyecciÃ³n en XZ)
         Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
         float targetBaseY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
         float[] poseTurn = { targetBaseY, shoulderAngleX, elbowAngleX, wristAngleY, miniElbowAngleX, gripperAngleY };
         yield return StartCoroutine(MoveToPoseSafe(poseTurn[0], poseTurn[1], poseTurn[2], poseTurn[3], poseTurn[4], poseTurn[5], 0.6f));
 
-        // 3) Traslado alto hasta hover
+        // 3) Traslado alto (validado con spherecasts)
         Vector3 hover = new Vector3(targetPos.x, targetPos.y + safeHeight, targetPos.z);
         Vector3 start = endEffectorTarget.position;
-        if (!EffectorPathClear(start, hover)) { Debug.LogWarning("Ruta alta bloqueada."); isBusy = false; yield break; }
+        if (!EffectorPathClear(start, hover)) { isBusy = false; yield break; }
 
         int steps = Mathf.Max(probeSteps, 5);
         for (int i = 1; i <= steps; i++)
         {
             float t = (float)i / steps;
             Vector3 p = Vector3.Lerp(start, hover, t);
-            if (!EffectorPathClear(endEffectorTarget.position, p)) { Debug.LogWarning("Bloqueo durante traslado alto."); isBusy = false; yield break; }
+            if (!EffectorPathClear(endEffectorTarget.position, p)) { isBusy = false; yield break; }
             yield return null;
         }
 
         // 4) Descenso vertical al target
         Vector3 descendStart = endEffectorTarget.position;
-        if (!EffectorPathClear(descendStart, targetPos)) { Debug.LogWarning("Descenso bloqueado."); isBusy = false; yield break; }
+        if (!EffectorPathClear(descendStart, targetPos)) { isBusy = false; yield break; }
 
-       
+        // orientar gripper con targetRot.y
 
         isBusy = false;
     }
 
     
-    bool EffectorPathClear(Vector3 a, Vector3 b)
+    // Trayecto del efector: esfera que â€œbarreâ€ de A a B
+    private bool EffectorPathClear(Vector3 a, Vector3 b)
     {
         Vector3 dir = (b - a);
         float dist = dir.magnitude;
@@ -350,7 +303,8 @@ public class MyRobotController : MonoBehaviour
         return !Physics.SphereCast(a, effectorProbeRadius, dir, out _, dist, obstacleLayer, QueryTriggerInteraction.Ignore);
     }
 
-    bool SegmentClear(Transform tA, Transform tB)
+    // Segmento entre dos juntas: cÃ¡psula gruesa
+    private bool SegmentClear(Transform tA, Transform tB)
     {
         Vector3 a = tA.position;
         Vector3 b = tB.position;
@@ -359,7 +313,8 @@ public class MyRobotController : MonoBehaviour
         return hits == null || hits.Length == 0;
     }
 
-    bool ChainClear()
+    // Toda la cadena (baseâ†’gripper)
+    private bool ChainClear()
     {
         return
             SegmentClear(joint_0_Base, joint_1_Shoulder) &&
@@ -369,7 +324,7 @@ public class MyRobotController : MonoBehaviour
             SegmentClear(joint_4_MiniElbow, joint_5_GripperRotate);
     }
 
-    // Gizmos útiles
+    // Gizmo de zona de agarre (visual)
     void OnDrawGizmosSelected()
     {
         if (endEffectorTarget == null) return;
