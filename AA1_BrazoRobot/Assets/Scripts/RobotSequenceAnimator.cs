@@ -60,12 +60,12 @@ public class RobotSequenceAnimator : MonoBehaviour
         // 3. Levantar
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Lift[0], pose_Lift[1], pose_Lift[2], pose_Lift[3], pose_Lift[4], pose_Lift[5], 1.5f));
 
-        // 4. Inspeccionar muñeca
+        // 4.  muñeca
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Inspect_WristLeft[0], pose_Inspect_WristLeft[1], pose_Inspect_WristLeft[2], pose_Inspect_WristLeft[3], pose_Inspect_WristLeft[4], pose_Inspect_WristLeft[5], 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Inspect_WristRight[0], pose_Inspect_WristRight[1], pose_Inspect_WristRight[2], pose_Inspect_WristRight[3], pose_Inspect_WristRight[4], pose_Inspect_WristRight[5], 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Lift[0], pose_Lift[1], pose_Lift[2], pose_Lift[3], pose_Lift[4], pose_Lift[5], 1.0f));
 
-        // 5. Inspeccionar pinza
+        // 5.  pinza
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Inspect_GripLeft[0], pose_Inspect_GripLeft[1], pose_Inspect_GripLeft[2], pose_Inspect_GripLeft[3], pose_Inspect_GripLeft[4], pose_Inspect_GripLeft[5], 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Inspect_GripRight[0], pose_Inspect_GripRight[1], pose_Inspect_GripRight[2], pose_Inspect_GripRight[3], pose_Inspect_GripRight[4], pose_Inspect_GripRight[5], 1.0f));
         yield return StartCoroutine(myRobotController.MoveToPoseSafe(pose_Lift[0], pose_Lift[1], pose_Lift[2], pose_Lift[3], pose_Lift[4], pose_Lift[5], 1.0f));
