@@ -7,7 +7,7 @@ public class MyRobotController : MonoBehaviour
 {
     public static bool startSequenceOnLoad = false;
 
-    
+    // Joints
     [SerializeField] private Transform joint_0_Base;
     [SerializeField] private Transform joint_1_Shoulder;
     [SerializeField] private Transform joint_2_Elbow;
@@ -15,10 +15,10 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private Transform joint_4_MiniElbow;
     [SerializeField] private Transform joint_5_GripperRotate;
 
-    
+    // End effector ref
     [SerializeField] private Transform endEffectorTarget;
 
-    
+    // Grab
     [SerializeField] private Transform gripPoint;
     [SerializeField] private float grabRadius = 0.5f;
     [SerializeField] private LayerMask grabbableLayer;
@@ -28,32 +28,32 @@ public class MyRobotController : MonoBehaviour
     [SerializeField] private float animationMoveSpeed = 1.0f;
 
     // Límites por eje
-    [SerializeField] private float base_MinY = -180f;
-    [SerializeField] private float base_MaxY = 180f;
-    [SerializeField] private float shoulder_MinX = -90.0f;
-    [SerializeField] private float shoulder_MaxX = 90.0f;
-    [SerializeField] private float elbow_MinX = 0.0f;
-    [SerializeField] private float elbow_MaxX = 150.0f;
-    [SerializeField] private float wrist_MinY = -180.0f;
-    [SerializeField] private float wrist_MaxY = 180.0f;
-    [SerializeField] private float miniElbow_MinX = -45.0f;
-    [SerializeField] private float miniElbow_MaxX = 90.0f;
-    [SerializeField] private float gripper_MinY = -180.0f;
-    [SerializeField] private float gripper_MaxY = 180.0f;
+     private float base_MinY = -180f;
+     private float base_MaxY = 180f;
+     private float shoulder_MinX = -90.0f;
+    private float shoulder_MaxX = 90.0f;
+     private float elbow_MinX = 0.0f;
+     private float elbow_MaxX = 150.0f;
+     private float wrist_MinY = -180.0f;
+     private float wrist_MaxY = 180.0f;
+    private float miniElbow_MinX = -45.0f;
+     private float miniElbow_MaxX = 90.0f;
+     private float gripper_MinY = -180.0f;
+   private float gripper_MaxY = 180.0f;
 
-    // Evitación por software 
-    [SerializeField] private LayerMask obstacleLayer;      
-    [SerializeField] private float linkRadius = 0.08f;     
+    // Evitación por software
+    [SerializeField] private LayerMask obstacleLayer;
+    [SerializeField] private float linkRadius = 0.08f;
     [SerializeField] private float effectorProbeRadius = 0.12f;
-    [SerializeField] private float safeHeight = 1.2f;      
-    [SerializeField] private int probeSteps = 10;        
+    [SerializeField] private float safeHeight = 1.2f;
+    [SerializeField] private int probeSteps = 10;
     [SerializeField] private bool blockManualOnCollision = true;
 
     public bool isBusy { get; private set; } = false;
     private GameObject heldObject = null;
     private RobotSequenceAnimator sequenceAnimator;
 
-    // Estado angular (FK)
+    // Estado (FK)
     private float baseAngleY = 0f;
     private float shoulderAngleX = 0f;
     private float elbowAngleX = 0f;
@@ -69,18 +69,17 @@ public class MyRobotController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha1)) { startSequenceOnLoad = false; ResetScene(); return; }
         if (isBusy) return;
 
-        ControlManual();       // FK manual con bloqueo si hay colisión
-        HandleActionInput();   // agarrar / reset / anim puntual
+        ControlManual();
+        HandleActionInput();
     }
 
     private void HandleActionInput()
     {
         if (Input.GetKeyDown(KeyCode.G)) { if (heldObject == null) TryGrabObject(); else ReleaseObject(); }
-        
         if (Input.GetKeyDown(KeyCode.P)) StartCoroutine(ResetArm());
     }
 
-    // Lee input → propone ángulos → intenta aplicarlos; si chocan, revierte
+    // Input → aplica si no colisiona (revirtiendo si hace falta)
     private void ControlManual()
     {
         float b = baseAngleY, s = shoulderAngleX, e = elbowAngleX, w = wristAngleY, m = miniElbowAngleX, g = gripperAngleY;
@@ -103,29 +102,24 @@ public class MyRobotController : MonoBehaviour
 
     private void TryApplyAnglesSafely(float b, float s, float e, float w, float m, float g)
     {
-        // Guardamos estado actual para poder revertir
         float pb = baseAngleY, ps = shoulderAngleX, pe = elbowAngleX, pw = wristAngleY, pm = miniElbowAngleX, pg = gripperAngleY;
         Vector3 effPrev = endEffectorTarget ? endEffectorTarget.position : Vector3.zero;
 
-        // Aplicamos propuesta (los clamps van en ApplyAllRotations)
         baseAngleY = b; shoulderAngleX = s; elbowAngleX = e; wristAngleY = w; miniElbowAngleX = m; gripperAngleY = g;
         ApplyAllRotations();
 
         if (!blockManualOnCollision) return;
 
-        // Chequeos: cadena (cápsulas) + sweep del efector (esfera)
         bool clearChain = ChainClear();
         bool clearSweep = endEffectorTarget ? EffectorPathClear(effPrev, endEffectorTarget.position) : true;
 
         if (!clearChain || !clearSweep)
         {
-            // Revertimos si habría colisión
             baseAngleY = pb; shoulderAngleX = ps; elbowAngleX = pe; wristAngleY = pw; miniElbowAngleX = pm; gripperAngleY = pg;
             ApplyAllRotations();
         }
     }
 
-    // Aplica estado → clamps → rotaciones locales
     private void ApplyAllRotations()
     {
         baseAngleY = Mathf.Clamp(baseAngleY, base_MinY, base_MaxY);
@@ -156,7 +150,7 @@ public class MyRobotController : MonoBehaviour
         isBusy = false;
     }
 
-    
+    // Interpoladores
     public IEnumerator MoveToPose(float[] angles, float duration)
     {
         yield return StartCoroutine(MoveToPose(angles[0], angles[1], angles[2], angles[3], angles[4], angles[5], duration));
@@ -172,9 +166,7 @@ public class MyRobotController : MonoBehaviour
 
         while (time < duration)
         {
-            float t = time / duration; t = t * t * (3f - 2f * t); // SmoothStep
-
-            // Y usa LerpAngle (ángulos circulares)
+            float t = time / duration; t = t * t * (3f - 2f * t);
             baseAngleY = Mathf.LerpAngle(startB, b, t);
             shoulderAngleX = Mathf.Lerp(startS, s, t);
             elbowAngleX = Mathf.Lerp(startE, e, t);
@@ -192,8 +184,8 @@ public class MyRobotController : MonoBehaviour
         isBusy = false;
     }
 
-    // Evita continuar si hay coolisones
-    IEnumerator MoveToPoseSafe(float b, float s, float e, float w, float m, float g, float duration)
+    // Cortar si hay coolision (no sigue
+    public IEnumerator MoveToPoseSafe(float b, float s, float e, float w, float m, float g, float duration)
     {
         isBusy = true;
 
@@ -217,7 +209,7 @@ public class MyRobotController : MonoBehaviour
         isBusy = false;
     }
 
-    
+    // Grab
     private void TryGrabObject()
     {
         Collider[] colliders = Physics.OverlapSphere(endEffectorTarget.position, grabRadius, grabbableLayer);
@@ -242,13 +234,7 @@ public class MyRobotController : MonoBehaviour
         heldObject = null;
     }
 
- 
-
-    private float NormalizeAngle(float angle) { if (angle > 180) angle -= 360; return angle; }
-
-    public void GrabObject(GameObject objectToGrab) { TryGrabObject(); }
-
-    
+    // Waypoints altos + barridos del efector
     public void MoveToTarget(Vector3 targetPosition, Quaternion targetRotation)
     {
         if (isBusy) return;
@@ -259,17 +245,14 @@ public class MyRobotController : MonoBehaviour
     {
         isBusy = true;
 
-        // 1) Subir a una pose alta 
         float[] poseUp = { baseAngleY, 10f, 20f, wristAngleY, miniElbowAngleX, gripperAngleY };
         yield return StartCoroutine(MoveToPoseSafe(poseUp[0], poseUp[1], poseUp[2], poseUp[3], poseUp[4], poseUp[5], 0.8f));
 
-        // 2) Girar solo la base hacia el objetivo (proyección en XZ)
         Vector3 flatDir = new Vector3(targetPos.x - transform.position.x, 0f, targetPos.z - transform.position.z);
         float targetBaseY = Mathf.Atan2(flatDir.x, flatDir.z) * Mathf.Rad2Deg;
         float[] poseTurn = { targetBaseY, shoulderAngleX, elbowAngleX, wristAngleY, miniElbowAngleX, gripperAngleY };
         yield return StartCoroutine(MoveToPoseSafe(poseTurn[0], poseTurn[1], poseTurn[2], poseTurn[3], poseTurn[4], poseTurn[5], 0.6f));
 
-        // 3) Traslado alto (validado con spherecasts)
         Vector3 hover = new Vector3(targetPos.x, targetPos.y + safeHeight, targetPos.z);
         Vector3 start = endEffectorTarget.position;
         if (!EffectorPathClear(start, hover)) { isBusy = false; yield break; }
@@ -283,17 +266,13 @@ public class MyRobotController : MonoBehaviour
             yield return null;
         }
 
-        // 4) Descenso vertical al target
         Vector3 descendStart = endEffectorTarget.position;
         if (!EffectorPathClear(descendStart, targetPos)) { isBusy = false; yield break; }
-
-        // orientar gripper con targetRot.y
 
         isBusy = false;
     }
 
-    
-    // Trayecto del efector: esfera que “barre” de A a B
+    // Colisiones: barrido efector + cápsulas por eslabón
     private bool EffectorPathClear(Vector3 a, Vector3 b)
     {
         Vector3 dir = (b - a);
@@ -303,17 +282,14 @@ public class MyRobotController : MonoBehaviour
         return !Physics.SphereCast(a, effectorProbeRadius, dir, out _, dist, obstacleLayer, QueryTriggerInteraction.Ignore);
     }
 
-    // Segmento entre dos juntas: cápsula gruesa
     private bool SegmentClear(Transform tA, Transform tB)
     {
-        Vector3 a = tA.position;
-        Vector3 b = tB.position;
+        Vector3 a = tA.position, b = tB.position;
         if (Vector3.Distance(a, b) <= 1e-4f) return true;
         Collider[] hits = Physics.OverlapCapsule(a, b, linkRadius, obstacleLayer, QueryTriggerInteraction.Ignore);
         return hits == null || hits.Length == 0;
     }
 
-    // Toda la cadena (base→gripper)
     private bool ChainClear()
     {
         return
@@ -324,7 +300,6 @@ public class MyRobotController : MonoBehaviour
             SegmentClear(joint_4_MiniElbow, joint_5_GripperRotate);
     }
 
-    // Gizmo de zona de agarre (visual)
     void OnDrawGizmosSelected()
     {
         if (endEffectorTarget == null) return;
