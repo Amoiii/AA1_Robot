@@ -1579,7 +1579,7 @@ GameObject:
   - component: {fileID: 1765130905}
   - component: {fileID: 1765130904}
   - component: {fileID: 1765130903}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1671,13 +1671,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1765130902}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.66001123, z: -0, w: 0.75125575}
-  m_LocalPosition: {x: 3.31, y: 6.64, z: -0.27}
+  m_LocalRotation: {x: -0, y: 0.93749917, z: -0, w: 0.3479877}
+  m_LocalPosition: {x: 2.36, y: 6.55, z: 0}
   m_LocalScale: {x: 0.7851515, y: 2.0904088, z: 2.0904088}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 82.601, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 139.271, z: 0}
 --- !u!1 &1827539076
 GameObject:
   m_ObjectHideFlags: 0
@@ -1740,6 +1740,8 @@ MonoBehaviour:
     m_Bits: 8
   manualRotationSpeed: 50
   animationMoveSpeed: 1
+  base_MinY: -180
+  base_MaxY: 180
   shoulder_MinX: -90
   shoulder_MaxX: 90
   elbow_MinX: 0
@@ -1750,6 +1752,14 @@ MonoBehaviour:
   miniElbow_MaxX: 90
   gripper_MinY: -180
   gripper_MaxY: 180
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  linkRadius: 0.5
+  effectorProbeRadius: 0.5
+  safeHeight: 1
+  probeSteps: 10
+  blockManualOnCollision: 1
 --- !u!114 &1827539079
 MonoBehaviour:
   m_ObjectHideFlags: 0
