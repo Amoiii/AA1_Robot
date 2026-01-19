@@ -14,7 +14,6 @@ public class RobotSequenceAnimator : MonoBehaviour
 
     void Update()
     {
-        // Tecla 2 inicia la secuencia automática
         if (Input.GetKeyDown(KeyCode.Alpha2) && !isSequenceRunning)
         {
             StartCoroutine(PerformSequence());
@@ -24,38 +23,61 @@ public class RobotSequenceAnimator : MonoBehaviour
     private IEnumerator PerformSequence()
     {
         isSequenceRunning = true;
-        bot.manualMode = false; // Bloquea manual
-        Debug.Log("--- SECUENCIA AUTO START ---");
+        bot.manualMode = false;
+        Debug.Log("--- INICIO AUTO ---");
 
-        // 1. IR AL CUBO (Si hay muro, usa tu MyMath para calcular evasión)
+        // 1. IR AL CUBO
+        Debug.Log("Yendo al cubo...");
         bot.MoveToTarget(targetCube.position);
-        while (bot.isBusy) yield return null;
 
-        // 2. AGARRAR
-        bot.ForceGrab(targetCube.gameObject);
+        // Esperamos a llegar
+        while (bot.isBusy) yield return null;
+        yield return new WaitForSeconds(0.5f); // Estabilizar
+
+        // 2. VERIFICAR Y AGARRAR
+        if (bot.CanGrab(targetCube.gameObject))
+        {
+            Debug.Log("Contacto confirmado. Agarrando.");
+            bot.ForceGrab(targetCube.gameObject);
+        }
+        else
+        {
+            Debug.LogError("FALLO: El robot llegó pero no está tocando el cubo. Revisar posición.");
+            // Intentamos un agarre de emergencia por si está muy cerca
+            bot.ForceGrab(targetCube.gameObject);
+        }
         yield return new WaitForSeconds(0.5f);
 
-        // 3. MOVIMIENTOS EXTRA (Requisito: Mover articulaciones libres)
-        // Base, Hombro, Codo, Muñeca, MiniCodo, Pinza
+        // 3. INSPECCIÓN (Girar articulaciones extra)
         float currentBase = bot.joint_0_Base.localEulerAngles.y;
-        float[] poseInspect = { currentBase, -30f, 45f, 0f, 45f, 90f }; // Movemos MiniCodo y Pinza
+        float[] poseInspect = { currentBase, -30f, 45f, 0f, 45f, 90f };
         yield return StartCoroutine(bot.MoveToPose(poseInspect, 2.0f));
-
         yield return new WaitForSeconds(0.5f);
 
         // 4. IR AL DROPZONE
+        Debug.Log("Llevando a DropZone...");
         bot.MoveToTarget(dropZone.position);
         while (bot.isBusy) yield return null;
-
-        // 5. SOLTAR
-        bot.ReleaseObject();
         yield return new WaitForSeconds(0.5f);
 
-        // 6. VOLVER A CASA
+        // 5. VERIFICAR Y SOLTAR
+        if (bot.IsInDropZone())
+        {
+            Debug.Log("Zona de entrega confirmada. Soltando.");
+            bot.ReleaseObject();
+        }
+        else
+        {
+            Debug.LogWarning("No detecto la DropZone, pero suelto igual por seguridad.");
+            bot.ReleaseObject();
+        }
+        yield return new WaitForSeconds(0.5f);
+
+        // 6. CASA
         yield return StartCoroutine(bot.ResetArm());
 
-        Debug.Log("--- SECUENCIA AUTO FIN ---");
-        bot.manualMode = true; // Devuelve control manual
+        Debug.Log("--- FIN AUTO ---");
+        bot.manualMode = true;
         isSequenceRunning = false;
     }
 }

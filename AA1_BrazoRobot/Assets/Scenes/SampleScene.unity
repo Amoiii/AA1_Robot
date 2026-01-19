@@ -1248,7 +1248,7 @@ GameObject:
   - component: {fileID: 1038322713}
   - component: {fileID: 1038322712}
   - component: {fileID: 1038322711}
-  m_Layer: 6
+  m_Layer: 7
   m_Name: DropZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1341,7 +1341,7 @@ Transform:
   m_GameObject: {fileID: 1038322710}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.4, y: 2.24, z: 0.25}
+  m_LocalPosition: {x: -4.4, y: 1.29, z: 0.25}
   m_LocalScale: {x: 3.0259464, y: 0.8996139, z: 3.0259464}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1730,7 +1730,7 @@ Transform:
   m_GameObject: {fileID: 1332352157}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.4, z: 0}
+  m_LocalPosition: {x: 0, y: 1.04, z: 0}
   m_LocalScale: {x: 2.2011564, y: 1.8938969, z: 2.2011564}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2485,10 +2485,15 @@ MonoBehaviour:
     m_Bits: 64
   grabbableLayer:
     serializedVersion: 2
-    m_Bits: 0
-  grabRadius: 0.5
+    m_Bits: 8
+  dropZoneLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  touchRadius: 0.25
   manualRotationSpeed: 50
-  animationMoveSpeed: 1
+  autoSpeed: 1
+  evasionSpeed: 60
+  recoverySpeed: 30
   blockManualOnCollision: 1
   manualMode: 1
 --- !u!114 &1827539079
@@ -2637,7 +2642,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1953888350}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!4 &1953888355
 Transform:
   m_ObjectHideFlags: 0
@@ -2647,7 +2652,7 @@ Transform:
   m_GameObject: {fileID: 1953888350}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.43, y: 1, z: 1.45}
+  m_LocalPosition: {x: 5.13, y: 3.58, z: 1.45}
   m_LocalScale: {x: 0.9921775, y: 0.9921775, z: 0.9921775}
   m_ConstrainProportionsScale: 0
   m_Children: []
